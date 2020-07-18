@@ -1,0 +1,1 @@
+{"version":3,"sources":["DrawerPositionContext.tsx"],"names":["React","createContext","undefined"],"mappings":";;;;;;;AAAA;;;;;;eAEeA,KAAK,CAACC,aAAN,CAAkDC,SAAlD,C","sourcesContent":["import * as React from 'react';\n\nexport default React.createContext<'left' | 'right' | undefined>(undefined);\n"]}
