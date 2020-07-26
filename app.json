@@ -4,7 +4,7 @@
     "slug": "CaseFinder",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -21,6 +21,8 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "description": "Updated case Finfer v2: loaded with a new advanced filtering system.  Users can filter search results with court names and dates of judgment.",
+    "githubUrl": "https://github.com/manmohitgrewal1/Case-Finder"
   }
 }

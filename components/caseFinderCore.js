@@ -8,16 +8,20 @@ import {
   Image,
   StatusBar,
   Alert,
+  Modal,
   TextInput,
   TouchableOpacity,
+  TouchableHighlight,
 } from "react-native";
+import { AntDesign } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import { Octicons } from "@expo/vector-icons";
-const cheerio = require("react-native-cheerio");
 import * as Animatable from "react-native-animatable";
+import { Picker } from "@react-native-community/picker";
 
+const cheerio = require("react-native-cheerio");
 class Casetiles extends React.Component {
   titleStyle = () => {
-    // console.log(console.log(this.props.li[1].split(" ")[2]))
     return {
       backgroundColor: "#7941f2",
       margin: 10,
@@ -36,12 +40,12 @@ class Casetiles extends React.Component {
     return (
       <Animatable.View animation="slideInLeft" style={this.titleStyle()}>
         <TouchableOpacity
-          onPress={() =>
+          onPress={() => {
             this.props.navigate.navigate(
               "DocViewer",
               this.props.docHref[this.props.id]
-            )
-          }
+            );
+          }}
         >
           <View style={styles.title_innerContainer}>
             <View style={styles.title_casename}>
@@ -83,12 +87,18 @@ export default class CaseFinderCore extends React.Component {
   constructor() {
     super();
     this.state = {
+      selectedFilter: [],
+      casename: [],
       message: [],
       court: [],
       cities: [],
       citiedBy: [],
       docHref: [],
+      filterYear: [],
+      filterCourts: [],
       loadCheck: false,
+      isVisible: false,
+      runningFilter: false,
     };
   }
 
@@ -99,14 +109,33 @@ export default class CaseFinderCore extends React.Component {
   myTrim(x) {
     return x.replace(/^\s+|\s+$/gm, "");
   }
-  async componentDidMount(casename) {
-    console.log("Loaded Sucessfully");
+
+  courtListThrower(array) {
+    const courtlist = [];
+    let checker = false;
+    let stopper = false;
+    let i = 0;
+    for (i = 0; i < array.length; i++) {
+      if (array[i] === " Courts" || checker === true) {
+        courtlist.push(array[i]);
+        checker = true;
+      }
+    }
+    return courtlist;
+  }
+
+  async componentDidMount(casename, filter, year) {
     if (this.state.loadCheck === false && !casename) {
       return;
     } else if (casename) {
-      // alert("Hellko")
-      const searchUrl = `https://indiankanoon.org/search/?formInput=${casename}+doctypes:judgments`;
-      console.log(searchUrl);
+      let searchUrl;
+      if (year === "") {
+        searchUrl = `https://indiankanoon.org/search/?formInput=${casename}+doctypes:${filter}`;
+        console.log(searchUrl);
+      } else {
+        searchUrl = `https://indiankanoon.org/search/?formInput=${casename}+doctypes:${filter}+fromdate:1-1-${year}+todate:31-12-${year}`;
+        console.log(searchUrl);
+      }
       const response = await fetch(searchUrl); // fetch page
       const htmlString = await response.text(); // get response text
       const $ = cheerio.load(htmlString); // parse HTML string
@@ -145,12 +174,57 @@ export default class CaseFinderCore extends React.Component {
           continue;
         }
       }
+      for (let i = 0; i < data.length; i++) {
+        if (data[i].length === 1) {
+          data[i].push("-");
+        }
+      }
+      const filterCourts = $(".category");
+      const li = filterCourts.text().split(/\r?\n/);
+      const courtlist = [];
+      let checkerCourts = false;
+      let checkerYear = false;
+      let stopper = false;
+      let courtcourtlistst = [];
+      let filterYear = [];
+      let i = 0;
+      for (i = 0; i < li.length; i++) {
+        courtlist.push(this.myTrim(li[i]));
+      }
+      for (i = 0; i < courtlist.length; i++) {
+        if (courtlist[i] === "Authors") {
+          checkerCourts = false;
+        }
+        if (courtlist[i] === "Related Queries") {
+          checkerYear = false;
+        }
+        if (checkerCourts === true) {
+          if (courtlist[i] != "") {
+            courtcourtlistst.push(courtlist[i]);
+          }
+        }
+        if (checkerYear === true) {
+          if (courtlist[i] != "") {
+            filterYear.push(courtlist[i]);
+          }
+        }
+        if (courtlist[i] === "Courts") {
+          checkerCourts = true;
+        }
+        if (courtlist[i] === "Years") {
+          checkerYear = true;
+        }
+      }
       this.setState({
         cities: citis,
         citiedBy: citiedBy,
         message: data,
         court: courts,
         docHref: docHref,
+        filterCourts: courtcourtlistst,
+        filterYear: filterYear,
+        casename: casename,
+        selectedFilter: casename[0],
       });
     }
   }
@@ -167,6 +241,9 @@ export default class CaseFinderCore extends React.Component {
       };
     }
   };
+  setModalVisible(e) {
+    this.setState({ isVisible: e });
+  }
 
   render() {
     return (
@@ -187,8 +264,8 @@ export default class CaseFinderCore extends React.Component {
           <TouchableOpacity
             onPress={() =>
               Alert.alert(
-                "Next Update Info",
-                "To enhance the search result developers are working on filters. Users could narrow down the search with the help of new filters. Update will release soon."
+                "Info shot!",
+                "Search results are arranged in relevancy order"
               )
             }
             style={styles.info}
@@ -203,9 +280,7 @@ export default class CaseFinderCore extends React.Component {
           {this.state.loadCheck ? (
             <Text></Text>
           ) : (
-            <Text style={styles.welcomeText}>
-              Welcome {"\n"} Lets get searching!
-            </Text>
+            <Text style={styles.welcomeText}>Lets get searching!</Text>
           )}
           <Octicons
             name="search"
@@ -218,7 +293,7 @@ export default class CaseFinderCore extends React.Component {
             placeholder="Search Case"
             placeholderTextColor="white"
             onSubmitEditing={(text) => {
-              this.componentDidMount(text.nativeEvent.text);
+              this.componentDidMount(text.nativeEvent.text, "judgments", "");
               this.setState({ loadCheck: true });
             }}
             style={this.state.loadCheck ? styles.input : styles.inputLong}
@@ -256,6 +331,45 @@ export default class CaseFinderCore extends React.Component {
             </View>
           </View>
         )}
+        {this.state.message.length === 0 ? (
+          console.log("")
+        ) : (
+          <View style={styles.filterBtnContainter}>
+            <TouchableHighlight
+              style={styles.removeBtn}
+              onPress={() => {
+                this.componentDidMount(this.state.casename, "judgement", "");
+              }}
+            >
+              <FontAwesome
+                style={{ position: "relative", left: 4 }}
+                name="remove"
+                size={20}
+                color="black"
+              />
+            </TouchableHighlight>
+            <TouchableHighlight
+              style={styles.openButton}
+              onPress={() => {
+                this.setState({ runningFilter: true }, () =>
+                  this.setModalVisible(!this.state.isVisible)
+                );
+              }}
+            >
+              <Text style={styles.textStyle}>Filter by Court</Text>
+            </TouchableHighlight>
+            <TouchableHighlight
+              style={styles.openButton}
+              onPress={() => {
+                this.setState({ runningFilter: false }, () =>
+                  this.setModalVisible(!this.state.isVisible)
+                );
+              }}
+            >
+              <Text style={styles.textStyle}>Filter by Date</Text>
+            </TouchableHighlight>
+          </View>
+        )}
         {this.state.message.map((msg, index) => (
           <View style={styles.tile_container}>
             <Casetiles
@@ -266,15 +380,185 @@ export default class CaseFinderCore extends React.Component {
               citiedBy={this.state.citiedBy[index]}
               docHref={this.state.docHref}
               navigate={this.props.navigation}
+              filterCourts={this.state.filterCourts}
             />
           </View>
         ))}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={this.state.isVisible}
+          onRequestClose={() => {
+            Alert.alert("Modal has been closed.");
+          }}
+        >
+          <View style={styles.modelContainer}>
+            {this.state.runningFilter ? (
+              <View style={styles.modelTop}>
+                <View style={styles.modalBar}>
+                  <TouchableHighlight
+                    style={styles.openButton2}
+                    onPress={() => {
+                      this.setModalVisible(!this.state.isVisible);
+                    }}
+                  >
+                    <AntDesign name="closecircle" size={24} color="black" />
+                  </TouchableHighlight>
+                  <Text style={styles.btnColor}>Filter by court</Text>
+                  <TouchableHighlight
+                    style={styles.openButton2}
+                    onPress={() => {
+                      this.setModalVisible(!this.state.isVisible);
+                      this.componentDidMount(
+                        this.state.casename,
+                        this.state.selectedFilter,
+                        ""
+                      );
+                    }}
+                  >
+                    <AntDesign name="checkcircle" size={24} color="black" />
+                  </TouchableHighlight>
+                </View>
+                <Picker
+                  selectedValue={this.state.selectedFilter}
+                  style={{ height: 30, width: "100%", position: "relative" }}
+                  onValueChange={(itemValue, itemIndex) =>
+                    this.setState({ selectedFilter: itemValue }, () =>
+                      console.log(
+                        "Selected this -->",
+                        this.state.casename,
+                        this.state.selectedFilter
+                      )
+                    )
+                  }
+                >
+                  {this.state.filterCourts.map((court) => (
+                    <Picker.Item label={court} value={court} />
+                  ))}
+                </Picker>
+              </View>
+            ) : (
+              <View style={styles.modelTop}>
+                <View style={styles.modalBar}>
+                  <TouchableHighlight
+                    style={styles.openButton2}
+                    onPress={() => {
+                      this.setModalVisible(!this.state.isVisible);
+                    }}
+                  >
+                    <AntDesign name="closecircle" size={24} color="black" />
+                  </TouchableHighlight>
+                  <Text style={styles.btnColor}>Filter by Date</Text>
+                  <TouchableHighlight
+                    style={styles.openButton2}
+                    onPress={() => {
+                      this.setModalVisible(!this.state.isVisible);
+                      this.componentDidMount(
+                        this.state.casename,
+                        "Judgement",
+                        this.state.selectedFilter
+                      );
+                    }}
+                  >
+                    <AntDesign name="checkcircle" size={24} color="black" />
+                  </TouchableHighlight>
+                </View>
+                <Picker
+                  selectedValue={this.state.selectedFilter}
+                  style={{ height: 30, width: "100%", position: "relative" }}
+                  onValueChange={(itemValue, itemIndex) =>
+                    this.setState({ selectedFilter: itemValue }, () =>
+                      console.log(
+                        "Selected this -->",
+                        this.state.casename,
+                        this.state.selectedFilter
+                      )
+                    )
+                  }
+                >
+                  {this.state.filterYear.map((year) => (
+                    <Picker.Item label={year} value={year} />
+                  ))}
+                </Picker>
+              </View>
+            )}
+          </View>
+        </Modal>
       </ScrollView>
     );
   }
 }
 
 const styles = StyleSheet.create({
+  textStyle: {
+    textAlign: "center",
+    color: "white",
+  },
+  btnColor: {
+    textAlign: "center",
+    color: "black",
+    fontSize: 20,
+    padding: 10,
+  },
+  modalBar: {
+    textAlign: "center",
+    padding: 5,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    height: 50,
+    backgroundColor: "#e8e0dc",
+  },
+  modelContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+    textAlign: "center",
+    height: "30%",
+  },
+  modelTop: {
+    height: 250,
+    backgroundColor: "white",
+  },
+  filterBtnContainter: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+    justifyContent: "space-around",
+  },
+  removeBtn: {
+    backgroundColor: "red",
+    borderRadius: 20,
+    padding: 5,
+    elevation: 2,
+    width: "9%",
+    textAlign: "center",
+    position: "relative",
+    left: "10%",
+    bottom: "4%",
+  },
+  openButton: {
+    backgroundColor: "#efa25c",
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2,
+    width: "30%",
+    textAlign: "center",
+    position: "relative",
+    bottom: "4%",
+  },
+  openButton2: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 5,
+    elevation: 2,
+    width: "30%",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+    position: "relative",
+    left: 5,
+    right: "10%",
+  },
   tmpView: {
     height: 150,
     width: "100%",
@@ -322,7 +606,7 @@ const styles = StyleSheet.create({
   iconLong: {
     position: "relative",
     left: "18%",
-    top: "25%",
+    top: "34%",
   },
   icon2: {
     position: "relative",
@@ -361,7 +645,7 @@ const styles = StyleSheet.create({
     width: "60%",
     position: "relative",
     left: "20%",
-    top: "8%",
+    top: "15%",
     color: "white",
     fontWeight: "bold",
     borderBottomColor: "white",
@@ -373,7 +657,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
-    top: 10,
   },
   title_innerContainer: {
     height: 140,
