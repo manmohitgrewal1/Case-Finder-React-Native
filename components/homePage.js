@@ -52,10 +52,10 @@ export default function Front(props) {
             },
           ]}
         >
-          Case finder is the ultimate legal reasearch tool developed for legal
-          fraternity. User have access to judgements of the Supreme Court and
-          all the High Courts. It is super easy to use and its powerful software
-          dispence result based on the relavancy of the searched case.
+           Case finder is the ultimate legal research tool developed for the
+          legal fraternity. Users have access to judgments of the Supreme Court
+          and all the High Courts. It is super easy to use and its powerful
+          software dispense result based on the relevancy of the searched case.
         </Text>
         <View style={styles.button}>
           <TouchableOpacity onPress={() => props.navigation.navigate("Home")}>
