@@ -13,14 +13,26 @@ import {
   TouchableOpacity,
   TouchableHighlight,
 } from "react-native";
+
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { Octicons } from "@expo/vector-icons";
-import * as Animatable from "react-native-animatable";
-import { Picker } from "@react-native-community/picker";
-
 const cheerio = require("react-native-cheerio");
+import * as Animatable from "react-native-animatable";
+import { Feather } from "@expo/vector-icons";
+import { Picker } from "@react-native-community/picker";
+let bookmarkedCases = [];
+let bCounter = 0;
 class Casetiles extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      iconPressed: false,
+      stupidToggle: false,
+    };
+  }
   titleStyle = () => {
     return {
       backgroundColor: "#7941f2",
@@ -35,6 +47,29 @@ class Casetiles extends React.Component {
       shadowRadius: 5,
     };
   };
+  // update the bookmark star in tiles
+  colorRender(key) {
+    let color = "white";
+    for (let i = 0; i < bookmarkedCases.length; i++) {
+      if (bookmarkedCases[i][5] === key) {
+        color = "green";
+        return color;
+      }
+    }
+    return color;
+  }
+  // check repetation of bookmarks
+  checker(id) {
+    let result = false;
+    for (let i = 0; i < bookmarkedCases.length; i++) {
+      if (bookmarkedCases[i][0] === id) {
+        console.log("Repeating");
+        result = true;
+        return result;
+      }
+    }
+    return result;
+  }
 
   render() {
     return (
@@ -55,6 +90,34 @@ class Casetiles extends React.Component {
               </Text>
             </View>
             <View style={styles.title_year}>
+              <Animatable.View animation="flash">
+                <TouchableOpacity
+                  onPress={() => {
+                    if (this.checker(this.props.li) === false) {
+                      this.setState({ iconPressed: true });
+                      bookmarkedCases.push([
+                        this.props.li,
+                        this.props.cities,
+                        this.props.citiedBy,
+                        this.props.court,
+                        this.props.docHref,
+                        this.props.id,
+                      ]);
+                      Alert.alert(
+                        "Added",
+                        "Bookmark is added to your bookmark directory!"
+                      );
+                    }
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="bookmark-plus"
+                    size={24}
+                    color="black"
+                    style={{ position: "relative", left: 25 }}
+                  />
+                </TouchableOpacity>
+              </Animatable.View>
               <Text style={styles.title_yearText}>
                 {this.props.li[1].split(" ")[2]}
               </Text>
@@ -99,6 +162,8 @@ export default class CaseFinderCore extends React.Component {
       loadCheck: false,
       isVisible: false,
       runningFilter: false,
+      bookmarkCaseList: [],
+      bookmarkLength: 0,
     };
   }
 
@@ -131,10 +196,8 @@ export default class CaseFinderCore extends React.Component {
       let searchUrl;
       if (year === "") {
         searchUrl = `https://indiankanoon.org/search/?formInput=${casename}+doctypes:${filter}`;
-        console.log(searchUrl);
       } else {
         searchUrl = `https://indiankanoon.org/search/?formInput=${casename}+doctypes:${filter}+fromdate:1-1-${year}+todate:31-12-${year}`;
-        console.log(searchUrl);
       }
       const response = await fetch(searchUrl); // fetch page
       const htmlString = await response.text(); // get response text
@@ -179,6 +242,7 @@ export default class CaseFinderCore extends React.Component {
           data[i].push("-");
         }
       }
+      // console.log('data-->', data);
       const filterCourts = $(".category");
       const li = filterCourts.text().split(/\r?\n/);
       const courtlist = [];
@@ -215,6 +279,8 @@ export default class CaseFinderCore extends React.Component {
           checkerYear = true;
         }
       }
+      // console.log('filter year -->', filterYear);
+
       this.setState({
         cities: citis,
         citiedBy: citiedBy,
@@ -229,6 +295,7 @@ export default class CaseFinderCore extends React.Component {
     }
   }
   headerChecker = (bool) => {
+    // console.log('checking bool arg value---> ', bool);
     if (bool === true) {
       return {};
     } else if (bool === false) {
@@ -244,6 +311,13 @@ export default class CaseFinderCore extends React.Component {
   setModalVisible(e) {
     this.setState({ isVisible: e });
   }
+  updateHandler(nw_array) {
+    bookmarkedCases = [];
+    bookmarkedCases = nw_array;
+  }
+  updateForcefully = () => {
+    this.forceUpdate();
+  };
 
   render() {
     return (
@@ -261,22 +335,40 @@ export default class CaseFinderCore extends React.Component {
             source={require("../assets/logo.png")}
             style={this.state.loadCheck ? styles.logo : styles.logoLong}
           />
-          <TouchableOpacity
-            onPress={() =>
-              Alert.alert(
-                "Info shot!",
-                "Search results are arranged in relevancy order"
-              )
-            }
-            style={styles.info}
-          >
-            <Octicons
-              name="info"
-              size={24}
-              color="black"
-              style={styles.icon2}
-            />
-          </TouchableOpacity>
+          {this.state.loadCheck ? (
+            <View style={this.state.loadCheck ? styles.infolong : styles.info}>
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert(
+                    "Info shot!",
+                    "Search results are arranged in relevancy order"
+                  )
+                }
+              >
+                <Octicons
+                  name="info"
+                  size={24}
+                  color="black"
+                  style={this.state.loadCheck ? styles.icon2long : styles.icon2}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  this.props.navigation.navigate("Bookmark", {
+                    bookmarkCaseList: bookmarkedCases,
+                    strinig: "this is some randome string",
+                    updateHandler: this.updateHandler,
+                    updateForcefully: this.updateForcefully,
+                  });
+                  this.forceUpdate();
+                }}
+              >
+                <Ionicons name="ios-bookmarks" size={24} color="black" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <Text></Text>
+          )}
           {this.state.loadCheck ? (
             <Text></Text>
           ) : (
@@ -381,6 +473,7 @@ export default class CaseFinderCore extends React.Component {
               docHref={this.state.docHref}
               navigate={this.props.navigation}
               filterCourts={this.state.filterCourts}
+              bookmarkCount={this.bookmarkCount}
             />
           </View>
         ))}
@@ -467,13 +560,7 @@ export default class CaseFinderCore extends React.Component {
                   selectedValue={this.state.selectedFilter}
                   style={{ height: 30, width: "100%", position: "relative" }}
                   onValueChange={(itemValue, itemIndex) =>
-                    this.setState({ selectedFilter: itemValue }, () =>
-                      console.log(
-                        "Selected this -->",
-                        this.state.casename,
-                        this.state.selectedFilter
-                      )
-                    )
+                    this.setState({ selectedFilter: itemValue })
                   }
                 >
                   {this.state.filterYear.map((year) => (
@@ -536,6 +623,7 @@ const styles = StyleSheet.create({
     left: "10%",
     bottom: "4%",
   },
+
   openButton: {
     backgroundColor: "#efa25c",
     borderRadius: 20,
@@ -596,7 +684,29 @@ const styles = StyleSheet.create({
   },
   info: {
     position: "relative",
-    bottom: "20%",
+    backgroundColor: "white",
+    flexDirection: "row-reverse",
+    width: "30%",
+    left: "150%",
+    height: "12%",
+    paddingTop: 5,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+    bottom: "26%",
+    justifyContent: "space-around",
+  },
+  infolong: {
+    position: "absolute",
+    backgroundColor: "white",
+    flexDirection: "row-reverse",
+    width: "30%",
+    left: "82%",
+    padding: 3,
+    height: "18%",
+    paddingTop: 5,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+    justifyContent: "space-around",
   },
   icon: {
     position: "relative",
@@ -610,8 +720,9 @@ const styles = StyleSheet.create({
   },
   icon2: {
     position: "relative",
-    left: "90%",
-    bottom: "31%",
+  },
+  icon3: {
+    position: "relative",
   },
   logo: {
     width: "20%",

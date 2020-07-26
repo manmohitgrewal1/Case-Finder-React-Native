@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react';
 import {
   Text,
   View,
@@ -7,19 +7,19 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-} from "react-native";
-import Constants from "expo-constants";
-import DocViewer from "./components/docViewer";
-import Front from "./components/homePage";
-import CaseFinderCore from "./components/caseFinderCore";
-
-import { createDrawerNavigator } from "@react-navigation/drawer";
+} from 'react-native';
+import Constants from 'expo-constants';
+import DocViewer from './components/docViewer';
+import Front from './components/homePage';
+import CaseFinderCore from './components/caseFinderCore';
+import BookmarkStack from './components/bookmark';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 
 import {
   Provider as PaperProvider,
   DefaultTheme as PaperDefaultTheme,
   DarkTheme as PaperDarkTheme,
-} from "react-native-paper";
+} from 'react-native-paper';
 import {
   NavigationContainer,
   DefaultTheme,
@@ -27,10 +27,10 @@ import {
   DarkTheme as NavigationDarkTheme,
   DarkTheme,
   DrawerActions,
-} from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
+} from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 
-const cheerio = require("react-native-cheerio");
+const cheerio = require('react-native-cheerio');
 const Stack = createStackNavigator();
 export default class App extends React.Component {
   createHomeStack = () => (
@@ -46,6 +46,7 @@ export default class App extends React.Component {
         component={CaseFinderCore}
       />
       <Stack.Screen name="DocViewer" component={DocViewer} />
+      <Stack.Screen name="Bookmark" component={BookmarkStack} />
     </Stack.Navigator>
   );
   render() {
