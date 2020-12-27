@@ -63,7 +63,6 @@ class Casetiles extends React.Component {
     let result = false;
     for (let i = 0; i < bookmarkedCases.length; i++) {
       if (bookmarkedCases[i][0] === id) {
-        console.log("Repeating");
         result = true;
         return result;
       }
@@ -294,8 +293,7 @@ export default class CaseFinderCore extends React.Component {
       });
     }
   }
-  headerChecker = (bool) => {
-    // console.log('checking bool arg value---> ', bool);
+  headerChecker = (bool) => 
     if (bool === true) {
       return {};
     } else if (bool === false) {
